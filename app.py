@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from db import modify_database, get_db_connection
 from datetime import datetime, timedelta
 
@@ -14,7 +14,16 @@ def index():
     eggs = [dict(egg) for egg in eggs]
     
     return render_template("dashboard.html", eggs=eggs)
+    
+@app.route("/chart-data")
+def chart_data():
+    conn = get_db_connection()
+    eggs = conn.execute("SELECT size, COUNT(*) as count FROM eggs_tbl GROUP BY size").fetchall()
+    conn.close()
 
+    data = [{"name": egg["size"], "value": egg["count"]} for egg in eggs]
+    
+    return jsonify(data)
 
 @app.route("/Inventory")
 def inventory():
