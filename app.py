@@ -1,19 +1,71 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, redirect, render_template, jsonify, url_for
 from db import modify_database, get_db_connection
 from datetime import datetime, timedelta
+from flask import request
+from functools import wraps
 
 app = Flask(__name__)
 modify_database()
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        data = request.get_json()
+        username = data.get("username")
+        password = data.get("password")
+        print(username, password)
+
+        if username == "admin" and password == "admin":
+            response = jsonify({"success": "Login successful"})
+            response.set_cookie("current_user", username)
+            return response
+        else:
+            return jsonify({"error": "Invalid credentials"}), 401
+    return redirect(url_for("index"))
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        current_user = request.cookies.get("current_user")
+        if not current_user:
+            return render_template("login.html")
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route("/")
+@login_required
 def index():
     conn = get_db_connection()
+    # Fetch all eggs
     eggs = conn.execute("SELECT * FROM eggs_tbl").fetchall()
+    
+    # Calculate total eggs
+    total_eggs = len(eggs)
+    
+    # Calculate monthly eggs
+    one_month_ago = datetime.now() - timedelta(days=30)
+    monthly_eggs = conn.execute(
+        "SELECT COUNT(*) as count FROM eggs_tbl WHERE created_at >= ?", 
+        (one_month_ago.strftime("%Y-%m-%d %H:%M:%S"),)
+    ).fetchone()["count"]
+    
+    # Calculate daily eggs
+    today = datetime.now().strftime("%Y-%m-%d")
+    daily_eggs = conn.execute(
+        "SELECT COUNT(*) as count FROM eggs_tbl WHERE DATE(created_at) = ?", 
+        (today,)
+    ).fetchone()["count"]
+    
     conn.close()
     eggs = [dict(egg) for egg in eggs]
     
-    return render_template("dashboard.html", eggs=eggs)
+    return render_template(
+        "dashboard.html", 
+        eggs=eggs, 
+        total_eggs=total_eggs, 
+        monthly_eggs=monthly_eggs, 
+        daily_eggs=daily_eggs
+    )
     
 @app.route("/chart-data")
 def chart_data():
@@ -26,29 +78,41 @@ def chart_data():
     return jsonify(data)
 
 @app.route("/Inventory")
+@login_required
 def inventory():
     conn = get_db_connection()
-    eggs = conn.execute("SELECT * FROM eggs_tbl").fetchall()
+    eggs = conn.execute("SELECT * FROM eggs_tbl ORDER BY created_at DESC").fetchall()
     conn.close()
 
-    eggs = [dict(egg) for egg in eggs]
-    for egg in eggs:
-        created_at = datetime.strptime(egg['created_at'], "%Y-%m-%d %H:%M:%S")
-        egg['created_at'] = created_at.strftime("%B %d, %Y %H:%M:%S")
-    
-        # Calculate remaining days until expiry
-        days_left = (created_at + timedelta(days=14) - datetime.now()).days
-    
-        # Format expiry message
-        if days_left > 0:
-            egg['expected_expiry'] = f"{days_left} days left"
-        elif days_left == 0:
-            egg['expected_expiry'] = "Expires today"
-        else:
-            egg['expected_expiry'] = f"Expired {abs(days_left)} days ago"
+    # Convert created_at and expected_expiry to readable format
+    eggs = [
+        {
+            **dict(egg),
+            "created_at": datetime.strptime(egg["created_at"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
+            "expected_expiry": datetime.strptime(egg["expected_expiry"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
+        }
+        for egg in eggs
+    ]
 
     return render_template("Inventory.html", eggs=eggs)
 
+@app.route("/add-egg", methods=["POST"])
+def add_egg():
+    size = request.form.get("size")
+    weight = request.form.get("weight")
+
+    if not size or not weight:
+        return jsonify({"error": "Size and weight are required"}), 400
+    try:
+        weight = float(weight)
+    except ValueError:
+        return jsonify({"error": "Weight must be a number"}), 400
+    
+    conn = get_db_connection()
+    conn.execute("INSERT INTO eggs_tbl (size, weight) VALUES (?, ?)", (size, weight))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Egg added successfully"}), 201
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

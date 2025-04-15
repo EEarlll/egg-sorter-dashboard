@@ -3,7 +3,7 @@
   <h1>Dashboard</h1>
   <nav>
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
       <li class="breadcrumb-item active">Dashboard</li>
     </ol>
   </nav>
@@ -19,7 +19,7 @@
             <div class="card-body">
               <h5 class="card-title">Total Eggs</h5>
               <div class="ps-3">
-                <h6>145</h6>
+                <h6>{{ total_eggs }}</h6>
               </div>
             </div>
           </div>
@@ -29,7 +29,7 @@
             <div class="card-body">
               <h5 class="card-title">Daily Eggs</h5>
               <div class="ps-3">
-                <h6>145</h6>
+                <h6>{{ daily_eggs }}</h6>
               </div>
             </div>
           </div>
@@ -39,7 +39,7 @@
             <div class="card-body">
               <h5 class="card-title">Monthly eggs</h5>
               <div class="ps-3">
-                <h6>145</h6>
+                <h6>{{ monthly_eggs }}</h6>
               </div>
             </div>
           </div>
@@ -72,7 +72,7 @@
                   new ApexCharts(document.querySelector("#reportsChart"), {
                     series: [
                       {
-                        name: "Revenue",
+                        name: "Weight",
                         data: eggWeights,
                       },
                     ],
@@ -83,34 +83,19 @@
                         show: false,
                       },
                     },
-                    markers: {
-                      size: 4,
-                    },
-                    colors: ["#4154f1", "#2eca6a", "#ff771d"],
-                    fill: {
-                      type: "gradient",
-                      gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.3,
-                        opacityTo: 0.4,
-                        stops: [0, 90, 100],
-                      },
-                    },
                     dataLabels: {
                       enabled: false,
                     },
                     stroke: {
-                      curve: "smooth",
+                      curve: "straight",
                       width: 2,
                     },
                     xaxis: {
                       type: "datetime",
                       categories: eggDates,
                     },
-                    tooltip: {
-                      x: {
-                        format: "dd/MM/yy HH:mm",
-                      },
+                    legend: {
+                      horizontalAlign: "left",
                     },
                   }).render();
                 });
