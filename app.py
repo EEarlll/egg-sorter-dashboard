@@ -2,10 +2,7 @@ from flask import Flask, redirect, render_template, jsonify, url_for
 from db import modify_database, get_db_connection
 from datetime import datetime, timedelta
 from flask import request
-<<<<<<< HEAD
 from functools import wraps
-=======
->>>>>>> c7479e77520d2f767823c73ef0226cddbb771428
 
 app = Flask(__name__)
 modify_database()
