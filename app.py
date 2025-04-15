@@ -41,6 +41,13 @@ def index():
     
     # Calculate total eggs
     total_eggs = len(eggs)
+
+    # Calculate weekly eggs
+    one_week_ago = datetime.now() - timedelta(days=7)
+    weekly_eggs = conn.execute(
+        "SELECT COUNT(*) as count FROM eggs_tbl WHERE created_at >= ?", 
+        (one_week_ago.strftime("%Y-%m-%d %H:%M:%S"),)
+    ).fetchone()["count"]
     
     # Calculate monthly eggs
     one_month_ago = datetime.now() - timedelta(days=30)
@@ -63,6 +70,7 @@ def index():
         "dashboard.html", 
         eggs=eggs, 
         total_eggs=total_eggs, 
+        weekly_eggs=weekly_eggs,
         monthly_eggs=monthly_eggs, 
         daily_eggs=daily_eggs
     )
@@ -76,6 +84,22 @@ def chart_data():
     data = [{"name": egg["size"], "value": egg["count"]} for egg in eggs]
     
     return jsonify(data)
+
+@app.route("/chart-data-2")
+def chart_data_2():
+    conn = get_db_connection()
+    eggs = conn.execute("SELECT created_at FROM eggs_tbl").fetchall()
+    conn.close()
+
+    # Initialize counts for Monday (index 0) to Sunday (index 6)
+    counts = [0, 0, 0, 0, 0, 0, 0]
+
+    for egg in eggs:
+        dt = datetime.strptime(egg["created_at"], "%Y-%m-%d %H:%M:%S")
+        # weekday(): Monday is 0, Sunday is 6
+        counts[dt.weekday()] += 1
+
+    return jsonify({"data": counts})
 
 @app.route("/Inventory")
 @login_required
