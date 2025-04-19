@@ -23,6 +23,12 @@ def login():
             return jsonify({"error": "Invalid credentials"}), 401
     return redirect(url_for("index"))
 
+@app.route("/logout", methods=["GET"])
+def logout():
+    response = redirect(url_for("index"))
+    response.delete_cookie("current_user")
+    return response
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -65,6 +71,25 @@ def index():
     
     conn.close()
     eggs = [dict(egg) for egg in eggs]
+    print(eggs)
+
+
+    for egg in eggs:
+        weight = egg.get('weight')
+        if weight is not None:
+            # Ensure weight is treated as a float for comparison
+            w = float(weight)
+            if 41 <= w < 55:
+                egg['size'] = 'Small'
+            elif 56 <= w < 60:
+                egg['size'] = 'Medium'
+            elif 61 <= w < 65:
+                egg['size'] = 'Large'
+            elif 66 <= w < 70:
+                egg['size'] = 'Extra Large'
+            else:
+                egg['size'] = 'Jumbo'
+
     
     return render_template(
         "dashboard.html", 
@@ -78,12 +103,37 @@ def index():
 @app.route("/chart-data")
 def chart_data():
     conn = get_db_connection()
-    eggs = conn.execute("SELECT size, COUNT(*) as count FROM eggs_tbl GROUP BY size").fetchall()
+    eggs = conn.execute("SELECT weight FROM eggs_tbl").fetchall()
     conn.close()
 
-    data = [{"name": egg["size"], "value": egg["count"]} for egg in eggs]
-    
-    return jsonify(data)
+    eggs = [dict(egg) for egg in eggs]
+
+    for egg in eggs:
+        weight = egg.get('weight')
+        if weight is not None:
+            # Ensure weight is treated as a float for comparison
+            w = float(weight)
+            if 41 <= w < 55:
+                egg['size'] = 'Small'
+            elif 56 <= w < 60:
+                egg['size'] = 'Medium'
+            elif 61 <= w < 65:
+                egg['size'] = 'Large'
+            elif 66 <= w < 70:
+                egg['size'] = 'Extra Large'
+            else:
+                egg['size'] = 'Jumbo'
+
+    size_counts = {'Small': 0, 'Medium': 0, 'Large': 0, 'Extra Large': 0, 'Jumbo': 0}
+    for egg in eggs:
+        size = egg.get('size')
+        if size in size_counts:
+            size_counts[size] += 1
+
+    size_counts = [{"name": size, "value": count} for size, count in size_counts.items()]
+
+
+    return jsonify(size_counts)
 
 @app.route("/chart-data-2")
 def chart_data_2():
@@ -118,14 +168,29 @@ def inventory():
         for egg in eggs
     ]
 
+    for egg in eggs:
+        weight = egg.get('weight')
+        if weight is not None:
+            # Ensure weight is treated as a float for comparison
+            w = float(weight)
+            if 41 <= w < 55:
+                egg['size'] = 'Small'
+            elif 56 <= w < 60:
+                egg['size'] = 'Medium'
+            elif 61 <= w < 65:
+                egg['size'] = 'Large'
+            elif 66 <= w < 70:
+                egg['size'] = 'Extra Large'
+            else:
+                egg['size'] = 'Jumbo'
+
     return render_template("Inventory.html", eggs=eggs)
 
 @app.route("/add-egg", methods=["POST"])
 def add_egg():
-    size = request.form.get("size")
     weight = request.form.get("weight")
 
-    if not size or not weight:
+    if not weight:
         return jsonify({"error": "Size and weight are required"}), 400
     try:
         weight = float(weight)
@@ -133,7 +198,7 @@ def add_egg():
         return jsonify({"error": "Weight must be a number"}), 400
     
     conn = get_db_connection()
-    conn.execute("INSERT INTO eggs_tbl (size, weight) VALUES (?, ?)", (size, weight))
+    conn.execute("INSERT INTO eggs_tbl (weight) VALUES (?)", (weight,))
     conn.commit()
     conn.close()
     return jsonify({"message": "Egg added successfully"}), 201

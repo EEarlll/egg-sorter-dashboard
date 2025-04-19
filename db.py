@@ -1,7 +1,7 @@
 import sqlite3
 
+# DB_FILE = "/home/project4/Desktop/d1.db"
 DB_FILE = "app.db"
-
 def get_db_connection():
     """Create and return a database connection."""
     conn = sqlite3.connect(DB_FILE)

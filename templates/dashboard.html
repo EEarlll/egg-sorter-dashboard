@@ -73,10 +73,11 @@
                   const eggsData = JSON.parse(
                     document.getElementById("eggs-data").textContent
                   ); // Prepare data specifically for ApexCharts series format (x: timestamp, y: value)
+                  const totalEggs = eggsData.length; 
                   const weightSeriesData = eggsData.map((egg) => {
                     return {
                       x: new Date(egg.created_at).getTime(), // Use timestamp for datetime axis
-                      y: egg.weight,
+                      y: totalEggs,
                     };
                   });
 
@@ -87,7 +88,7 @@
                     // 1. Series configuration
                     series: [
                       {
-                        name: "Egg Weight (g)", // More descriptive name
+                        name: "Total Eggs", // More descriptive name
                         data: weightSeriesData,
                       },
                     ],
@@ -146,7 +147,7 @@
                       },
                       y: {
                         formatter: function (val) {
-                          return val.toFixed(1) + " g"; // Add unit and format decimal
+                          return val.toFixed(1) ; // Add unit and format decimal
                         },
                         title: {
                           // Consistent naming in tooltip
@@ -182,7 +183,7 @@
                     // 8. Y-Axis Configuration
                     yaxis: {
                       title: {
-                        text: "Weight (grams)", // Add axis title
+                        text: "Total Eggs", // Add axis title
                         style: {
                           fontSize: "12px",
                           fontWeight: 600,
@@ -309,7 +310,7 @@
                 },
                 series: [
                   {
-                    name: "Access From",
+                    name: "Size:",
                     type: "pie",
                     radius: ["40%", "70%"],
                     avoidLabelOverlap: false,

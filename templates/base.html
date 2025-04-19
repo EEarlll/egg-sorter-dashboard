@@ -57,20 +57,26 @@
             <span>Inventory</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a
+            class="nav-link {% if request.endpoint == 'inventory' %}active{% else %}collapsed{% endif %}"
+            href="{{ url_for('logout') }}"
+          >
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Logout</span>
+          </a>
+        </li>
         <!-- End Components Nav -->
       </ul>
     </aside>
     <!-- End Sidebar-->
 
-    <main id="main" class="main">
-      {% block content %}{% endblock %}
-    </main>
+    <main id="main" class="main">{% block content %}{% endblock %}</main>
     <!-- End #main -->
 
     <!-- ======= Footer ======= -->
     <footer id="footer" class="footer">
-      <div class="copyright">
-      </div>
+      <div class="copyright"></div>
     </footer>
     <!-- End Footer -->
 
