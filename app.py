@@ -3,6 +3,7 @@ from db import modify_database, get_db_connection
 from datetime import datetime, timedelta
 from flask import request
 from functools import wraps
+from itertools import groupby
 
 app = Flask(__name__)
 modify_database()
@@ -155,36 +156,59 @@ def chart_data_2():
 @login_required
 def inventory():
     conn = get_db_connection()
-    eggs = conn.execute("SELECT * FROM eggs_tbl ORDER BY created_at DESC").fetchall()
+    rows = conn.execute("SELECT * FROM eggs_tbl ORDER BY created_at DESC").fetchall()
     conn.close()
 
-    # Convert created_at and expected_expiry to readable format
-    eggs = [
-        {
-            **dict(egg),
-            "created_at": datetime.strptime(egg["created_at"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
-            "expected_expiry": datetime.strptime(egg["expected_expiry"], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
+    eggs = []
+    for egg in rows:
+        created_date = datetime.strptime(
+            egg["created_at"], "%Y-%m-%d %H:%M:%S"
+        ).strftime("%Y-%m-%d %H:%M:%S")
+        expiry_date = datetime.strptime(
+            egg["expected_expiry"], "%Y-%m-%d %H:%M:%S"
+        ).strftime("%Y-%m-%d %H:%M:%S")
+
+        egg_dict = dict(egg)
+        egg_dict["created_date"] = created_date
+        egg_dict["expected_expiry"] = expiry_date
+        eggs.append(egg_dict)
+
+    # Group eggs into batches by created_date
+    # Ensure sorted by date so groupby works
+    eggs.sort(key=lambda x: x["created_date"], reverse=True)
+    batches = [list(group) for _, group in groupby(eggs, key=lambda x: x["created_date"])]
+
+    # Define size categories
+    size_counts_per_batch = []
+    for batch in batches:
+        if not batch:
+            continue
+        date = batch[0]["created_date"]
+        expected_expiry = (datetime.strptime(date, "%Y-%m-%d %H:%M:%S") + timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+
+        counts = {
+            "Small": 0,
+            "Medium": 0,
+            "Large": 0,
+            "Extra Large": 0,
+            "Jumbo": 0,
         }
-        for egg in eggs
-    ]
-
-    for egg in eggs:
-        weight = egg.get('weight')
-        if weight is not None:
-            # Ensure weight is treated as a float for comparison
-            w = float(weight)
-            if 41 <= w < 55:
-                egg['size'] = 'Small'
-            elif 56 <= w < 60:
-                egg['size'] = 'Medium'
-            elif 61 <= w < 65:
-                egg['size'] = 'Large'
-            elif 66 <= w < 70:
-                egg['size'] = 'Extra Large'
+        for egg in batch:
+            w = int(egg["weight"])
+            if 41 <= w <= 55:
+                size = "Small"
+            elif 56 <= w <= 60:
+                size = "Medium"
+            elif 61 <= w <= 65:
+                size = "Large"
+            elif 66 <= w <= 70:
+                size = "Extra Large"
             else:
-                egg['size'] = 'Jumbo'
-
-    return render_template("Inventory.html", eggs=eggs)
+                size = "Jumbo"
+            counts[size] += 1
+        size_counts_per_batch.append({"date": date, "expected_expiry": expected_expiry, **counts})
+    
+    return render_template("Inventory.html", eggs=size_counts_per_batch)
 
 @app.route("/add-egg", methods=["POST"])
 def add_egg():

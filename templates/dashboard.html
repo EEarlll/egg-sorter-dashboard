@@ -72,12 +72,14 @@
                 document.addEventListener("DOMContentLoaded", () => {
                   const eggsData = JSON.parse(
                     document.getElementById("eggs-data").textContent
-                  ); // Prepare data specifically for ApexCharts series format (x: timestamp, y: value)
-                  const totalEggs = eggsData.length; 
+                  );
+                  const totalEggs = eggsData.length;
+                  let cumulativeCount = 0;
                   const weightSeriesData = eggsData.map((egg) => {
+                    cumulativeCount++;
                     return {
                       x: new Date(egg.created_at).getTime(), // Use timestamp for datetime axis
-                      y: totalEggs,
+                      y: cumulativeCount,
                     };
                   });
 
@@ -119,25 +121,13 @@
                         },
                         autoSelected: "zoom",
                       },
-                    }, // 3. Data Labels (Keep disabled for cleaner look with many points)
-                    dataLabels: {
-                      enabled: false,
                     },
 
                     // 4. Stroke (Line Appearance)
                     stroke: {
                       curve: "smooth", // Smoother line visually
-                      width: 2, // Slightly thicker line
+                      width: 2, // Line thickness
                     },
-
-                    // 5. Markers (Show points on the line)
-                    markers: {
-                      size: 4, // Size of the markers
-                      hover: {
-                        size: 6, // Slightly larger marker on hover
-                      },
-                    },
-
                     // 6. Tooltip Enhancements
                     tooltip: {
                       enabled: true,
@@ -147,7 +137,7 @@
                       },
                       y: {
                         formatter: function (val) {
-                          return val.toFixed(1) ; // Add unit and format decimal
+                          return val.toFixed(1); // Add unit and format decimal
                         },
                         title: {
                           // Consistent naming in tooltip
